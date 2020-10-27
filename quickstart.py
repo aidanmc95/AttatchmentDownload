@@ -7,7 +7,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 
 # If modifying these scopes, delete the file token.pickle.
-SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
+SCOPES = ['https://www.googleapis.com/auth/gmail.modify']
 
 def main():
     """Shows basic usage of the Gmail API.
@@ -36,22 +36,30 @@ def main():
 
     # Call the Gmail API
     results = service.users().messages().list(userId='me', labelIds=None, q=None, pageToken=None, maxResults=None, includeSpamTrash=None).execute()
-    msg_id = results['messages'][1]['id']
-    message = service.users().messages().get(userId='me', id=results['messages'][0]['id'], format=None, metadataHeaders=None).execute()
-    for part in message['payload']['parts']:
-        if part['filename']:
-            if 'data' in part['body']:
-                data = part['body']['data']
-            else:
-                att_id = part['body']['attachmentId']
-                att = service.users().messages().attachments().get(userId='me', messageId=msg_id,id=att_id).execute()
-                data = att['data']
-            file_data = base64.urlsafe_b64decode(data.encode('UTF-8'))
-            path = 'Results/' + part['filename']
+    for msg in results['messages']:
+        msg_id = msg['id']
+        message = service.users().messages().get(userId='me', id=msg_id, format=None, metadataHeaders=None).execute()
+        
+        for part in message['payload']['parts']:
+            if (part['filename'] and part['mimeType'] == 'application/pdf'):
+                if 'data' in part['body']:
+                    data = part['body']['data']
+                else:
+                    att_id = part['body']['attachmentId']
+                    att = service.users().messages().attachments().get(userId='me', messageId=msg_id,id=att_id).execute()
+                    data = att['data']
+                file_data = base64.urlsafe_b64decode(data.encode('UTF-8'))
+                path = 'Results/' + part['filename']
 
-            with open(path, 'wb') as f:
-                f.write(file_data)
-                f.close()
+                with open(path, 'wb') as f:
+                    f.write(file_data)
+                    f.close() 
+        
+        add_spam = {
+            "addLabelIds": ["SPAM"],
+        }
+        service.users().messages().modify(userId='me', id=msg_id, body=add_spam).execute()
+
 
     # results = service.users().labels().list(userId='me').execute()
     # print(results)
