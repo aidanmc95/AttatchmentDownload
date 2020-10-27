@@ -36,7 +36,7 @@ def main():
 
     # Call the Gmail API
     results = service.users().messages().list(userId='me', labelIds=None, q=None, pageToken=None, maxResults=None, includeSpamTrash=None).execute()
-    msg_id = results['messages'][0]['id']
+    msg_id = results['messages'][1]['id']
     message = service.users().messages().get(userId='me', id=results['messages'][0]['id'], format=None, metadataHeaders=None).execute()
     for part in message['payload']['parts']:
         if part['filename']:
@@ -47,8 +47,7 @@ def main():
                 att = service.users().messages().attachments().get(userId='me', messageId=msg_id,id=att_id).execute()
                 data = att['data']
             file_data = base64.urlsafe_b64decode(data.encode('UTF-8'))
-            print(file_data)
-            path = part['filename']
+            path = 'Results/' + part['filename']
 
             with open(path, 'wb') as f:
                 f.write(file_data)
